@@ -1,0 +1,38 @@
+- hosts: webservers
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install python3-venv
+      apt:
+        name: python3-venv
+        state: present
+
+    - name: Create app virtual environment
+      command: python3 -m venv /opt/webapp/venv
+      args:
+        creates: /opt/webapp/venv
+
+    - name: Install Flask inside venv
+      command: /opt/webapp/venv/bin/pip install flask
+
+    - name: Deploy simple Flask app
+      copy:
+        dest: /home/ubuntu/app.py
+        content: |
+          from flask import Flask
+          app = Flask(__name__)
+
+          @app.route("/")
+          def hello():
+              return "Welcome to your App!"
+
+          if __name__ == "__main__":
+              app.run(host="0.0.0.0", port=8080)
+
+    - name: Run Flask app with virtualenv python
+      shell: nohup /opt/webapp/venv/bin/python /home/ubuntu/app.py &
+      args:
+        chdir: /home/ubuntu
